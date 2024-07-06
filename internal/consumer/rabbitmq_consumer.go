@@ -72,7 +72,6 @@ func (r *RabbitMQConsumer) Listen(ctx context.Context) error {
 				event := models.BuildEvent(string(message.Body), "RabbitMQ")
 
 				err = r.service.HandlerEvent(ctx, *event)
-				err = fmt.Errorf("teste")
 				if err != nil {
 					logger.Error(err.Error())
 					r.retryMessage(ctx, message)
