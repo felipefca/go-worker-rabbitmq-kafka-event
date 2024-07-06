@@ -45,7 +45,7 @@ func (db eventDB) AddEvent(ctx context.Context, event models.Event) (string, err
 
 	idStr, _ := result.InsertedID.(primitive.ObjectID)
 
-	logger.Info("Event successfully inserted!")
+	logger.Info("Event successfully inserted in MongoDB!")
 	return idStr.Hex(), nil
 }
 

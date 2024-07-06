@@ -111,6 +111,7 @@ func connectRedis(ctx context.Context) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:       cfg.Host + ":" + strconv.Itoa(int(cfg.Port)),
 		Password:   cfg.Password,
+		DB:         0,
 		MaxRetries: cfg.ConnectRetry,
 	})
 

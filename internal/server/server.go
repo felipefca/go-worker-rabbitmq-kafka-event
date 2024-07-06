@@ -6,6 +6,8 @@ import (
 	"go-worker-rabbitmq-kafka-event/internal/appctx"
 	"go-worker-rabbitmq-kafka-event/internal/consumer"
 	"go-worker-rabbitmq-kafka-event/internal/db/mongodb"
+	"go-worker-rabbitmq-kafka-event/internal/db/redisdb"
+	"go-worker-rabbitmq-kafka-event/internal/services"
 	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -39,7 +41,9 @@ func NewServer(opt ServerOptions) Server {
 func (s server) Start() {
 	logger := appctx.FromContext(s.ServerOptions.Context)
 
-	eventDB := mongodb.NewEventDB(s.MongoConn)
+	eventMongoDB := mongodb.NewEventDB(s.MongoConn)
+	eventRedisDB := redisdb.NewEventRedisDB(s.RedisConn)
+	service := services.NewService(eventMongoDB, eventRedisDB)
 
 	logger.Info("Starting consumer...")
 
@@ -48,7 +52,7 @@ func (s server) Start() {
 
 	go func() {
 		defer wg.Done()
-		if err := s.startRabbitConsumer(s.Context, eventDB); err != nil {
+		if err := s.startRabbitConsumer(s.Context, service); err != nil {
 			logger.Error(err.Error())
 			panic(err)
 		}
@@ -57,7 +61,7 @@ func (s server) Start() {
 	wg.Wait()
 }
 
-func (s server) startRabbitConsumer(ctx context.Context, eventDB mongodb.EventDB) error {
+func (s server) startRabbitConsumer(ctx context.Context, service services.Service) error {
 	channel, err := s.ServerOptions.AmqpConn.Channel()
 	if err != nil {
 		return err
@@ -65,7 +69,7 @@ func (s server) startRabbitConsumer(ctx context.Context, eventDB mongodb.EventDB
 	defer s.ServerOptions.AmqpConn.Close()
 	defer channel.Close()
 
-	mq, err := consumer.NewRabbitMQConsumer(channel, configs.GetConfig().RabbitMQ, eventDB)
+	mq, err := consumer.NewRabbitMQConsumer(channel, configs.GetConfig().RabbitMQ, service)
 	if err != nil {
 		return err
 	}

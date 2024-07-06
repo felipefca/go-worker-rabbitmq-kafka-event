@@ -41,17 +41,13 @@ type MongoDB struct {
 }
 
 type RedisDB struct {
-	Expiration          time.Duration
-	KeyPrefix           string
-	UseSsL              bool
-	Port                int32
-	ConnectRetry        int
-	AbortConnectionFail bool
-	Host                string
-	TimeOut             time.Duration
-	Password            string
-	Database            int
-	ConnectionUrl       string
+	KeyPrefix     string
+	Port          int32
+	ConnectRetry  int
+	Host          string
+	TimeOut       time.Duration
+	Password      string
+	ConnectionUrl string
 }
 
 func GetConfig() config {
@@ -91,15 +87,12 @@ func init() {
 			ConnectionUrl: viper.GetString("MONGODB_CONNECTION"),
 		},
 		RedisDB: RedisDB{
-			Expiration:          viper.GetDuration("REDIS_EXPIRATION"),
-			KeyPrefix:           viper.GetString("REDIS_KEYPREFIX"),
-			UseSsL:              viper.GetBool("REDIS_USESSL"),
-			Port:                viper.GetInt32("REDIS_PORT"),
-			ConnectRetry:        viper.GetInt("REDIS_CONNECTRETRY"),
-			AbortConnectionFail: viper.GetBool("REDIS_ABORTCONNECTIONFAIL"),
-			Host:                viper.GetString("REDIS_HOST"),
-			TimeOut:             viper.GetDuration("REDIS_TIMEOUT"),
-			Password:            viper.GetString("REDIS_PASSWORD"),
+			KeyPrefix:    viper.GetString("REDIS_KEYPREFIX"),
+			Port:         viper.GetInt32("REDIS_PORT"),
+			ConnectRetry: viper.GetInt("REDIS_CONNECTRETRY"),
+			Host:         viper.GetString("REDIS_HOST"),
+			TimeOut:      viper.GetDuration("REDIS_TIMEOUT"),
+			Password:     viper.GetString("REDIS_PASSWORD"),
 		},
 	}
 }

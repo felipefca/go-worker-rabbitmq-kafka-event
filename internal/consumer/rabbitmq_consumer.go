@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"go-worker-rabbitmq-kafka-event/configs"
 	"go-worker-rabbitmq-kafka-event/internal/appctx"
-	"go-worker-rabbitmq-kafka-event/internal/db/mongodb"
 	"go-worker-rabbitmq-kafka-event/internal/middlewares"
 	"go-worker-rabbitmq-kafka-event/internal/models"
+	"go-worker-rabbitmq-kafka-event/internal/services"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -15,14 +15,14 @@ import (
 type RabbitMQConsumer struct {
 	channel *amqp.Channel
 	cfg     configs.RabbitMQ
-	eventDB mongodb.EventDB
+	service services.Service
 }
 
-func NewRabbitMQConsumer(channel *amqp.Channel, cfg configs.RabbitMQ, eventDB mongodb.EventDB) (*RabbitMQConsumer, error) {
+func NewRabbitMQConsumer(channel *amqp.Channel, cfg configs.RabbitMQ, service services.Service) (*RabbitMQConsumer, error) {
 	consumer := RabbitMQConsumer{
 		channel: channel,
 		cfg:     cfg,
-		eventDB: eventDB,
+		service: service,
 	}
 
 	err := consumer.setup()
@@ -71,7 +71,13 @@ func (r *RabbitMQConsumer) Listen(ctx context.Context) error {
 
 				event := models.BuildEvent(string(message.Body), "RabbitMQ")
 
-				r.eventDB.AddEvent(ctx, *event)
+				err = r.service.HandlerEvent(ctx, *event)
+				err = fmt.Errorf("teste")
+				if err != nil {
+					logger.Error(err.Error())
+					r.retryMessage(ctx, message)
+					continue
+				}
 
 				message.Ack(false)
 			}
