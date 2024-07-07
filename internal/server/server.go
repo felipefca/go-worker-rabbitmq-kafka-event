@@ -4,12 +4,14 @@ import (
 	"context"
 	"go-worker-rabbitmq-kafka-event/configs"
 	"go-worker-rabbitmq-kafka-event/internal/appctx"
-	"go-worker-rabbitmq-kafka-event/internal/consumer"
 	"go-worker-rabbitmq-kafka-event/internal/db/mongodb"
 	"go-worker-rabbitmq-kafka-event/internal/db/redisdb"
+	"go-worker-rabbitmq-kafka-event/internal/infra/kafka"
+	"go-worker-rabbitmq-kafka-event/internal/infra/rabbitmq"
 	"go-worker-rabbitmq-kafka-event/internal/services"
 	"sync"
 
+	"github.com/IBM/sarama"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,11 +23,12 @@ type Server interface {
 }
 
 type ServerOptions struct {
-	Logger    *zap.Logger
-	Context   context.Context
-	AmqpConn  *amqp.Connection
-	MongoConn *mongo.Client
-	RedisConn *redis.Client
+	Logger        *zap.Logger
+	Context       context.Context
+	AmqpConn      *amqp.Connection
+	MongoConn     *mongo.Client
+	RedisConn     *redis.Client
+	KafkaConsumer sarama.ConsumerGroup
 }
 
 type server struct {
@@ -48,11 +51,19 @@ func (s server) Start() {
 	logger.Info("Starting consumer...")
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
 		if err := s.startRabbitConsumer(s.Context, service); err != nil {
+			logger.Error(err.Error())
+			panic(err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := s.startKafkaConsumer(s.Context, service); err != nil {
 			logger.Error(err.Error())
 			panic(err)
 		}
@@ -69,10 +80,19 @@ func (s server) startRabbitConsumer(ctx context.Context, service services.Servic
 	defer s.ServerOptions.AmqpConn.Close()
 	defer channel.Close()
 
-	mq, err := consumer.NewRabbitMQConsumer(channel, configs.GetConfig().RabbitMQ, service)
+	mq, err := rabbitmq.NewRabbitMQConsumer(channel, configs.GetConfig().RabbitMQ, service)
 	if err != nil {
 		return err
 	}
 
 	return mq.Listen(ctx)
+}
+
+func (s server) startKafkaConsumer(ctx context.Context, service services.Service) error {
+	consumer, err := kafka.NewKafkaConsumer(s.KafkaConsumer, configs.GetConfig().Kafka)
+	if err != nil {
+		return err
+	}
+
+	return consumer.Listen(ctx)
 }

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/IBM/sarama"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -52,12 +53,21 @@ func main() {
 
 	logger.Info("Redis Connected!")
 
+	kafkaClient, err := connectKafka()
+	if err != nil {
+		panic(err)
+	}
+	defer kafkaClient.Close()
+
+	logger.Info("Kafka Client connected!")
+
 	s := server.NewServer(server.ServerOptions{
-		Logger:    logger,
-		Context:   ctx,
-		AmqpConn:  amqpConn,
-		MongoConn: mongoConn,
-		RedisConn: redisConn,
+		Logger:        logger,
+		Context:       ctx,
+		AmqpConn:      amqpConn,
+		MongoConn:     mongoConn,
+		RedisConn:     redisConn,
+		KafkaConsumer: kafkaClient,
 	})
 	s.Start()
 }
@@ -121,4 +131,20 @@ func connectRedis(ctx context.Context) (*redis.Client, error) {
 	}
 
 	return client, nil
+}
+
+func connectKafka() (sarama.ConsumerGroup, error) {
+	cfg := configs.GetConfig().Kafka
+
+	config := sarama.NewConfig()
+	config.Consumer.Return.Errors = true
+
+	brokers := []string{cfg.Broker}
+
+	consumer, err := sarama.NewConsumerGroup(brokers, cfg.GroupId, config)
+	if err != nil {
+		panic(err)
+	}
+
+	return consumer, nil
 }

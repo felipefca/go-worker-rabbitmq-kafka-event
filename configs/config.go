@@ -13,6 +13,7 @@ type config struct {
 	RabbitMQ    RabbitMQ
 	MongoDB     MongoDB
 	RedisDB     RedisDB
+	Kafka       Kafka
 }
 
 type Application struct {
@@ -48,6 +49,13 @@ type RedisDB struct {
 	TimeOut       time.Duration
 	Password      string
 	ConnectionUrl string
+}
+
+type Kafka struct {
+	Broker            string
+	SchemaRegistryUrl string
+	GroupId           string
+	TopicName         string
 }
 
 func GetConfig() config {
@@ -93,6 +101,12 @@ func init() {
 			Host:         viper.GetString("REDIS_HOST"),
 			TimeOut:      viper.GetDuration("REDIS_TIMEOUT"),
 			Password:     viper.GetString("REDIS_PASSWORD"),
+		},
+		Kafka: Kafka{
+			Broker:            viper.GetString("KAFKA_BROKER"),
+			SchemaRegistryUrl: viper.GetString("KAFKA_SCHEMA_REGISTRY_URL"),
+			GroupId:           viper.GetString("KAFKA_GROUPID"),
+			TopicName:         viper.GetString("KAFKA_TOPIC_NAME"),
 		},
 	}
 }

@@ -1,0 +1,13 @@
+{
+  "doc": "Schema to event message.",
+  "fields": [
+    {
+      "doc": "The string is a unicode character sequence.",
+      "name": "message",
+      "type": "string"
+    }
+  ],
+  "name": "event",
+  "namespace": "event.namespace",
+  "type": "record"
+}
